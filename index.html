@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARP System - Automated Repair & Parts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold text-blue-400">ARP System</h1>
+            <p class="text-xs text-slate-400">Automated Repair & Parts Management</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-xs bg-blue-900 text-blue-200 px-3 py-1 rounded-full border border-blue-700">Role: <strong id="currentRoleDisplay">Admin</strong></span>
+            <select id="roleSelector" onchange="switchRole(this.value)" class="bg-slate-700 text-sm rounded px-2 py-1 border border-slate-600 focus:outline-none">
+                <option value="Admin">Admin</option>
+                <option value="Technician">Technician</option>
+                <option value="Front Desk">Front Desk</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Left Column: Quick Intake Form -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-lg h-fit">
+            <h2 class="text-lg font-semibold mb-4 text-blue-300">New Repair Job Intake</h2>
+            <form onsubmit="handleIntake(event)" class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-slate-400 mb-1">Customer Name</label>
+                    <input type="text" id="custName" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Phone Number</label>
+                    <input type="text" id="custPhone" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Device Type & Model</label>
+                    <input type="text" id="deviceModel" placeholder="e.g. iPhone 13 / HP EliteBook" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Reported Issue</label>
+                    <textarea id="issue" rows="2" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 focus:border-blue-500 focus:outline-none"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded transition">Register Device & Job</button>
+            </form>
+        </div>
+
+        <!-- Right Column: Jobs & Workflow (Dual Validation) -->
+        <div class="md:col-span-2 space-y-6">
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-blue-300">Active Repair Jobs & Dual Validation</h2>
+                    <span class="text-xs text-slate-400" id="jobCount">0 Jobs</span>
+                </div>
+                <div id="jobList" class="space-y-4">
+                    <!-- Dynamic Jobs injected here -->
+                    <p class="text-slate-500 text-sm italic">No repair jobs registered yet. Use the intake form to add one.</p>
+                </div>
+            </div>
+
+            <!-- Catalogue Summary -->
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-lg">
+                <h2 class="text-lg font-semibold text-blue-300 mb-3">Parts Catalogue Quick View</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                        <p class="font-bold text-slate-300">SCR-IP13</p>
+                        <p class="text-slate-400">iPhone 13 Screen</p>
+                        <p class="text-blue-400 mt-1">$120.00 (Stock: 5)</p>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                        <p class="font-bold text-slate-300">BATT-HP</p>
+                        <p class="text-slate-400">HP 840 Battery</p>
+                        <p class="text-blue-400 mt-1">$45.00 (Stock: 12)</p>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700">
+                        <p class="font-bold text-slate-300">CHG-USB</p>
+                        <p class="text-slate-400">Type-C Port Flex</p>
+                        <p class="text-blue-400 mt-1">$15.00 (Stock: 20)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let jobs = JSON.parse(localStorage.getItem('arp_jobs')) || [];
+        let currentRole = 'Admin';
+
+        function switchRole(role) {
+            currentRole = role;
+            document.getElementById('currentRoleDisplay').innerText = role;
+        }
+
+        function handleIntake(e) {
+            e.preventDefault();
+            const newJob = {
+                id: Date.now().toString().slice(-4),
+                customer: document.getElementById('custName').value,
+                phone: document.getElementById('custPhone').value,
+                device: document.getElementById('deviceModel').value,
+                issue: document.getElementById('issue').value,
+                status: 'received',
+                techValidated: false,
+                custValidated: false
+            };
+            jobs.push(newJob);
+            saveAndRender();
+            e.target.reset();
+        }
+
+        function updateStatus(id, newStatus) {
+            const job = jobs.find(j => j.id === id);
+            if(job) {
+                job.status = newStatus;
+                saveAndRender();
+            }
+        }
+
+        function toggleValidation(id, type) {
+            const job = jobs.find(j => j.id === id);
+            if(!job) return;
+
+            if(type === 'tech') job.techValidated = !job.techValidated;
+            if(type === 'cust') job.custValidated = !job.custValidated;
+
+            if(job.techValidated && job.custValidated) {
+                job.status = 'delivered';
+            }
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('arp_jobs', JSON.stringify(jobs));
+            const container = document.getElementById('jobList');
+            document.getElementById('jobCount').innerText = `${jobs.length} Jobs`;
+
+            if(jobs.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-sm italic">No repair jobs registered yet. Use the intake form to add one.</p>`;
+                return;
+            }
+
+            container.innerHTML = jobs.map(j => `
+                <div class="bg-slate-900 border border-slate-700 p-4 rounded-lg space-y-3 text-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-mono bg-slate-800 text-blue-400 px-2 py-0.5 rounded">Job #${j.id}</span>
+                            <h3 class="font-bold text-white mt-1">${j.device}</h3>
+                            <p class="text-slate-400 text-xs">Customer: ${j.customer} (${j.phone})</p>
+                        </div>
+                        <span class="px-2.5 py-1 text-xs rounded uppercase font-semibold 
+                            ${j.status === 'delivered' ? 'bg-green-900 text-green-300' : 'bg-amber-900 text-amber-300'}">
+                            ${j.status}
+                        </span>
+                    </div>
+                    <p class="text-slate-300 text-xs bg-slate-800 p-2 rounded"><strong>Issue:</strong> ${j.issue}</p>
+                    
+                    <!-- Status & Validation Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <label class="text-slate-400">Status:</label>
+                            <select onchange="updateStatus('${j.id}', this.value)" class="bg-slate-800 text-slate-200 rounded p-1 border border-slate-700">
+                                <option value="received" ${j.status==='received'?'selected':''}>Received</option>
+                                <option value="diagnosing" ${j.status==='diagnosing'?'selected':''}>Diagnosing</option>
+                                <option value="waiting_parts" ${j.status==='waiting_parts'?'selected':''}>Waiting Parts</option>
+                                <option value="repaired" ${j.status==='repaired'?'selected':''}>Repaired</option>
+                                <option value="delivered" ${j.status==='delivered'?'selected':''}>Delivered</option>
+                                <option value="locked" ${j.status==='locked'?'selected':''}>Locked (Fail)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" ${j.techValidated ? 'checked' : ''} onchange="toggleValidation('${j.id}', 'tech')" class="rounded bg-slate-800 border-slate-700">
+                                <span class="text-slate-300">Tech Check</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" ${j.custValidated ? 'checked' : ''} onchange="toggleValidation('${j.id}', 'cust')" class="rounded bg-slate-800 border-slate-700">
+                                <span class="text-slate-300">Customer Confirm</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        saveAndRender();
+    </script>
+</body>
+</html>
