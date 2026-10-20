@@ -15,9 +15,9 @@
             <p class="text-xs text-slate-400">Automated Repair & Parts Management</p>
         </div>
         <nav class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700">
-            <button onclick="switchView('frontdesk')" id="btn-frontdesk" class="px-4 py-1.5 text-xs font-medium rounded-md transition bg-blue-600 text-white">Front Desk</button>
-            <button onclick="switchView('technician')" id="btn-technician" class="px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white">Technician Portal</button>
-            <button onclick="requestAdminAccess()" id="btn-admin" class="px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white">Admin Dashboard</button>
+            <button onclick="switchView('frontdesk')" id="nav-frontdesk" class="px-4 py-1.5 text-xs font-medium rounded-md transition bg-blue-600 text-white">Front Desk</button>
+            <button onclick="switchView('technician')" id="nav-technician" class="px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white">Technician Portal</button>
+            <button onclick="switchView('admin')" id="nav-admin" class="px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white">Admin Dashboard</button>
         </nav>
     </header>
 
@@ -25,10 +25,10 @@
     <div id="adminModal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-sm w-full shadow-2xl space-y-4">
             <h3 class="text-lg font-bold text-blue-300">Admin Authentication</h3>
-            <p class="text-xs text-slate-400">Please enter the admin password to access the dashboard.</p>
-            <input type="password" id="adminPasswordInput" placeholder="Password (try 1234)" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+            <p class="text-xs text-slate-400">Please enter the admin password to access the dashboard. <br>(Default password: <strong>1234</strong>)</p>
+            <input type="password" id="adminPasswordInput" placeholder="Enter password..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500">
             <div class="flex justify-end gap-2">
-                <button onclick="closeAdminModal()" class="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded">Cancel</button>
+                <button onclick="closeAdminModal()" class="px-4 py-2 text-xs bg-slate-700 hover:bg-slate-600 rounded text-slate-300">Cancel</button>
                 <button onclick="verifyAdminPassword()" class="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-500 rounded text-white font-medium">Login</button>
             </div>
         </div>
@@ -92,7 +92,7 @@
             <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-lg space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-700 pb-4">
                     <h2 class="text-lg font-semibold text-blue-300">Admin Control Center</h2>
-                    <button onclick="switchView('frontdesk')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded">Lock / Logout Admin</button>
+                    <button onclick="switchView('frontdesk')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-slate-300">Lock / Logout Admin</button>
                 </div>
                 
                 <!-- Quick Stats -->
@@ -143,7 +143,7 @@
         let isAdminLoggedIn = false;
 
         function switchView(viewName) {
-            if(viewName === 'admin' && !isAdminLoggedIn) {
+            if (viewName === 'admin' && !isAdminLoggedIn) {
                 requestAdminAccess();
                 return;
             }
@@ -153,22 +153,29 @@
             document.getElementById('view-technician').classList.add('hidden');
             document.getElementById('view-admin').classList.add('hidden');
 
-            // Reset nav button styles
-            document.getElementById('btn-frontdesk').className = "px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white";
-            document.getElementById('btn-technician').className = "px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white";
-            document.getElementById('btn-admin').className = "px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white";
+            // Reset all nav button styles
+            ['frontdesk', 'technician', 'admin'].forEach(v => {
+                const btn = document.getElementById('nav-' + v);
+                if (btn) {
+                    btn.className = "px-4 py-1.5 text-xs font-medium rounded-md transition text-slate-300 hover:text-white";
+                }
+            });
 
-            // Show selected view and highlight button
-            document.getElementById('view-' + viewName).classList.remove('hidden');
-            document.getElementById('btn-' + viewName).className = "px-4 py-1.5 text-xs font-medium rounded-md transition bg-blue-600 text-white";
+            // Show selected view and highlight its button
+            const targetView = document.getElementById('view-' + viewName);
+            const targetNav = document.getElementById('nav-' + viewName);
+
+            if (targetView) targetView.classList.remove('hidden');
+            if (targetNav) targetNav.className = "px-4 py-1.5 text-xs font-medium rounded-md transition bg-blue-600 text-white";
 
             renderAll();
         }
 
         function requestAdminAccess() {
             document.getElementById('adminModal').classList.remove('hidden');
-            document.getElementById('adminPasswordInput').value = '';
-            document.getElementById('adminPasswordInput').focus();
+            const inputField = document.getElementById('adminPasswordInput');
+            inputField.value = '';
+            inputField.focus();
         }
 
         function closeAdminModal() {
@@ -177,9 +184,131 @@
 
         function verifyAdminPassword() {
             const pass = document.getElementById('adminPasswordInput').value;
-            if(pass === '1234') {
+            if (pass === '1234') {
                 isAdminLoggedIn = true;
                 closeAdminModal();
                 switchView('admin');
             } else {
                 alert('Incorrect password! Try 1234');
+                document.getElementById('adminPasswordInput').focus();
+            }
+        }
+
+        function handleIntake(e) {
+            e.preventDefault();
+            const newJob = {
+                id: Date.now().toString().slice(-4),
+                customer: document.getElementById('custName').value,
+                phone: document.getElementById('custPhone').value,
+                device: document.getElementById('deviceModel').value,
+                issue: document.getElementById('issue').value,
+                status: 'received', 
+                techValidated: false,
+                custValidated: false
+            };
+            jobs.push(newJob);
+            saveAndRender();
+            e.target.reset();
+            alert('Device successfully registered and added to queue!');
+        }
+
+        function updateStatus(id, newStatus) {
+            const job = jobs.find(j => j.id === id);
+            if (job) {
+                job.status = newStatus;
+                saveAndRender();
+            }
+        }
+
+        function toggleValidation(id, type) {
+            const job = jobs.find(j => j.id === id);
+            if (!job) return;
+
+            if (type === 'tech') job.techValidated = !job.techValidated;
+            if (type === 'cust') job.custValidated = !job.custValidated;
+
+            if (job.techValidated && job.custValidated) {
+                job.status = 'delivered';
+            }
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('arp_jobs', JSON.stringify(jobs));
+            renderAll();
+        }
+
+        function renderAll() {
+            // Front Desk View Render
+            const fdContainer = document.getElementById('frontdeskJobList');
+            if (jobs.length === 0) {
+                fdContainer.innerHTML = `<p class="text-slate-500 text-sm italic">No active repair jobs in the queue.</p>`;
+            } else {
+                fdContainer.innerHTML = jobs.map(j => `
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-mono text-blue-400">Job #${j.id}</span>
+                            <p class="font-bold text-white">${j.device} (${j.customer})</p>
+                            <p class="text-slate-400">Status: <span class="uppercase text-amber-300 font-semibold">${j.status}</span></p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center gap-1 cursor-pointer bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                                <input type="checkbox" ${j.custValidated ? 'checked' : ''} onchange="toggleValidation('${j.id}', 'cust')">
+                                <span class="text-slate-300">Customer Confirm</span>
+                            </label>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Technician Portal View Render
+            const techContainer = document.getElementById('techJobList');
+            if (jobs.length === 0) {
+                techContainer.innerHTML = `<p class="text-slate-500 text-sm italic">No repair jobs assigned to workbench.</p>`;
+            } else {
+                techContainer.innerHTML = jobs.map(j => `
+                    <div class="bg-slate-900 border border-slate-700 p-4 rounded-lg space-y-3 text-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs font-mono bg-slate-800 text-blue-400 px-2 py-0.5 rounded">Job #${j.id}</span>
+                                <h3 class="font-bold text-white mt-1">${j.device}</h3>
+                                <p class="text-slate-400 text-xs">Customer: ${j.customer} (${j.phone})</p>
+                            </div>
+                            <span class="px-2.5 py-1 text-xs rounded uppercase font-semibold 
+                                ${j.status === 'delivered' ? 'bg-green-900 text-green-300' : j.status === 'locked' ? 'bg-red-900 text-red-300' : 'bg-amber-900 text-amber-300'}">
+                                ${j.status}
+                            </span>
+                        </div>
+                        <p class="text-slate-300 text-xs bg-slate-800 p-2 rounded"><strong>Issue:</strong> ${j.issue}</p>
+                        
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+                            <div class="flex items-center gap-2">
+                                <label class="text-slate-400">Update Status:</label>
+                                <select onchange="updateStatus('${j.id}', this.value)" class="bg-slate-800 text-slate-200 rounded p-1 border border-slate-700">
+                                    <option value="received" ${j.status==='received'?'selected':''}>Received</option>
+                                    <option value="diagnosing" ${j.status==='diagnosing'?'selected':''}>Diagnosing</option>
+                                    <option value="waiting_parts" ${j.status==='waiting_parts'?'selected':''}>Waiting Parts</option>
+                                    <option value="repaired" ${j.status==='repaired'?'selected':''}>Repaired</option>
+                                    <option value="delivered" ${j.status==='delivered'?'selected':''}>Delivered</option>
+                                    <option value="locked" ${j.status==='locked'?'selected':''}>Locked (Diagnostic Failed)</option>
+                                </select>
+                            </div>
+                            <label class="flex items-center gap-1 cursor-pointer bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                                <input type="checkbox" ${j.techValidated ? 'checked' : ''} onchange="toggleValidation('${j.id}', 'tech')">
+                                <span class="text-slate-300">Tech Sign-Off</span>
+                            </label>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Admin Stats Render
+            document.getElementById('statTotalJobs').innerText = jobs.length;
+            document.getElementById('statCompleted').innerText = jobs.filter(j => j.status === 'delivered').length;
+            document.getElementById('statLocked').innerText = jobs.filter(j => j.status === 'locked').length;
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
